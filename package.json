@@ -1,0 +1,24 @@
+{
+  "name": "akario-mart",
+  "version": "1.0.0",
+  "description": "A full-featured e-commerce platform",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node start-dev.js",
+    "dev:backend": "cd server && npm run dev",
+    "dev:frontend": "cd client && npm run dev",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "dependencies": {
+    "axios": "^1.12.2",
+    "dotenv": "^17.2.3",
+    "framer-motion": "^12.23.24",
+    "mongoose": "^8.19.1"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.14",
+    "vite": "^7.1.10"
+  }
+}

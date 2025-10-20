@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akario Mart - Frontend Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Akario Mart - Frontend to Backend Connection Test</h1>
+    
+    <div class="container">
+        <h2>Register User</h2>
+        <input type="text" id="regName" placeholder="Name" value="Frontend User"><br>
+        <input type="email" id="regEmail" placeholder="Email" value="frontend@example.com"><br>
+        <input type="password" id="regPassword" placeholder="Password" value="password123"><br>
+        <select id="regRole">
+            <option value="user">User</option>
+            <option value="seller">Seller</option>
+            <option value="admin">Admin</option>
+        </select><br>
+        <button onclick="registerUser()">Register</button>
+        <div id="registerResult" class="result"></div>
+    </div>
+    
+    <div class="container">
+        <h2>Login User</h2>
+        <input type="email" id="loginEmail" placeholder="Email" value="frontend@example.com"><br>
+        <input type="password" id="loginPassword" placeholder="Password" value="password123"><br>
+        <select id="loginRole">
+            <option value="user">User</option>
+            <option value="seller">Seller</option>
+            <option value="admin">Admin</option>
+        </select><br>
+        <button onclick="loginUser()">Login</button>
+        <div id="loginResult" class="result"></div>
+    </div>
+    
+    <div class="container">
+        <h2>Get Current User</h2>
+        <button onclick="getCurrentUser()">Get Current User</button>
+        <div id="currentUserResult" class="result"></div>
+    </div>
+    
+    <div class="container">
+        <h2>Get Products</h2>
+        <button onclick="getProducts()">Get Products</button>
+        <div id="productsResult" class="result"></div>
+    </div>
+    
+    <script>
+        // Store token globally
+        let authToken = null;
+        
+        // Function to register user
+        async function registerUser() {
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const role = document.getElementById('regRole').value;
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, email, password, role })
+                });
+                
+                const data = await response.json();
+                const resultDiv = document.getElementById('registerResult');
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result success';
+                    authToken = data.token; // Store token if registration successful
+                } else {
+                    resultDiv.innerHTML = JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                document.getElementById('registerResult').innerHTML = 'Error: ' + error.message;
+                document.getElementById('registerResult').className = 'result error';
+            }
+        }
+        
+        // Function to login user
+        async function loginUser() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const role = document.getElementById('loginRole').value;
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password, role })
+                });
+                
+                const data = await response.json();
+                const resultDiv = document.getElementById('loginResult');
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result success';
+                    authToken = data.token; // Store token
+                } else {
+                    resultDiv.innerHTML = JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                document.getElementById('loginResult').innerHTML = 'Error: ' + error.message;
+                document.getElementById('loginResult').className = 'result error';
+            }
+        }
+        
+        // Function to get current user
+        async function getCurrentUser() {
+            if (!authToken) {
+                document.getElementById('currentUserResult').innerHTML = 'Please login first';
+                document.getElementById('currentUserResult').className = 'result error';
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/auth/me', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                const resultDiv = document.getElementById('currentUserResult');
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.innerHTML = JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                document.getElementById('currentUserResult').innerHTML = 'Error: ' + error.message;
+                document.getElementById('currentUserResult').className = 'result error';
+            }
+        }
+        
+        // Function to get products
+        async function getProducts() {
+            try {
+                const response = await fetch('http://localhost:5000/api/products', {
+                    method: 'GET'
+                });
+                
+                const data = await response.json();
+                const resultDiv = document.getElementById('productsResult');
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.innerHTML = JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                document.getElementById('productsResult').innerHTML = 'Error: ' + error.message;
+                document.getElementById('productsResult').className = 'result error';
+            }
+        }
+    </script>
+</body>
+</html>
