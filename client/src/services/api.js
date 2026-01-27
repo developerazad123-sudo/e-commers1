@@ -1,6 +1,7 @@
 // This file will contain all API calls to the backend
 
-const API_BASE_URL = '' // Using proxy, so we don't need the full URL
+// Use environment variable for production, fallback to empty for development proxy
+const API_BASE_URL = import.meta.env.VITE_API_URL || ''
 
 // Simple in-memory cache
 const apiCache = new Map()
