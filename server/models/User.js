@@ -83,14 +83,34 @@ userSchema.pre('save', async function(next) {
 
 // Sign JWT and return
 userSchema.methods.getSignedJwtToken = function() {
+  // Convert JWT_EXPIRE to seconds if it contains 'd' for days
+  let expiresIn = process.env.JWT_EXPIRE;
+  if (typeof expiresIn === 'string' && expiresIn.endsWith('d')) {
+    const days = parseInt(expiresIn.replace('d', ''));
+    expiresIn = days * 24 * 60 * 60; // Convert to seconds
+  }
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE
+    expiresIn: expiresIn
   });
 };
 
 // Match user entered password to hashed password in database
 userSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// Generate and hash password token
+userSchema.methods.getResetPasswordToken = function() {
+  // Generate token
+  const resetToken = require('crypto').randomBytes(20).toString('hex');
+
+  // Hash token and set to resetPasswordToken field
+  this.resetPasswordToken = require('crypto').createHash('sha256').update(resetToken).digest('hex');
+
+  // Set expire
+  this.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+  return resetToken;
 };
 
 module.exports = mongoose.model('User', userSchema);

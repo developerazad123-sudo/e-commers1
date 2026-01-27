@@ -1,6 +1,6 @@
 // This file will contain all API calls to the backend
 
-const API_BASE_URL = 'http://localhost:5000/api'
+const API_BASE_URL = '' // Using proxy, so we don't need the full URL
 
 // Simple in-memory cache
 const apiCache = new Map()
@@ -61,14 +61,14 @@ export const authAPI = {
   login: async (email, password, role) => {
     // Clear cache on login
     clearAllCache()
-    return apiRequest('/auth/login', {
+    return apiRequest('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password, role })
     })
   },
 
   register: async (name, email, password, role) => {
-    return apiRequest('/auth/register', {
+    return apiRequest('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ name, email, password, role })
     })
@@ -78,17 +78,17 @@ export const authAPI = {
 // Product API
 export const productAPI = {
   getProducts: async () => {
-    return apiRequest('/products')
+    return apiRequest('/api/products')
   },
 
   getProductById: async (id) => {
-    return apiRequest(`/products/${id}`)
+    return apiRequest(`/api/products/${id}`)
   },
 
   createProduct: async (productData, token) => {
     // Clear cache when creating a product
-    clearCache('/products', 'GET')
-    return apiRequest('/products', {
+    clearCache('/api/products', 'GET')
+    return apiRequest('/api/products', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -100,9 +100,9 @@ export const productAPI = {
 
   updateProduct: async (id, productData, token) => {
     // Clear cache when updating a product
-    clearCache('/products', 'GET')
-    clearCache(`/products/${id}`, 'GET')
-    return apiRequest(`/products/${id}`, {
+    clearCache('/api/products', 'GET')
+    clearCache(`/api/products/${id}`, 'GET')
+    return apiRequest(`/api/products/${id}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -114,9 +114,9 @@ export const productAPI = {
 
   deleteProduct: async (id, token) => {
     // Clear cache when deleting a product
-    clearCache('/products', 'GET')
-    clearCache(`/products/${id}`, 'GET')
-    return apiRequest(`/products/${id}`, {
+    clearCache('/api/products', 'GET')
+    clearCache(`/api/products/${id}`, 'GET')
+    return apiRequest(`/api/products/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -128,13 +128,14 @@ export const productAPI = {
   uploadProductPhoto: async (id, formData, token) => {
     try {
       // Clear cache when uploading a photo
-      clearCache('/products', 'GET')
-      clearCache(`/products/${id}`, 'GET')
+      clearCache('/api/products', 'GET')
+      clearCache(`/api/products/${id}`, 'GET')
       
-      const response = await fetch(`${API_BASE_URL}/products/${id}/photo`, {
+      const response = await fetch(`${API_BASE_URL}/api/products/${id}/photo`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
+          // Note: Don't set Content-Type header for FormData, let browser set it automatically
         },
         body: formData
       });
@@ -151,7 +152,7 @@ export const productAPI = {
 // User API
 export const userAPI = {
   getUsers: async (token) => {
-    return apiRequest('/users/admin', {
+    return apiRequest('/api/users/admin', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -159,7 +160,7 @@ export const userAPI = {
   },
 
   getSellers: async (token) => {
-    return apiRequest('/users/admin', {
+    return apiRequest('/api/users/admin', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -167,7 +168,7 @@ export const userAPI = {
   },
 
   deleteUser: async (id, token) => {
-    return apiRequest(`/users/admin/${id}`, {
+    return apiRequest(`/api/users/admin/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -176,7 +177,7 @@ export const userAPI = {
   },
 
   blockUser: async (id, token) => {
-    return apiRequest(`/users/admin/${id}/block`, {
+    return apiRequest(`/api/users/admin/${id}/block`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -185,7 +186,7 @@ export const userAPI = {
   },
 
   unblockUser: async (id, token) => {
-    return apiRequest(`/users/admin/${id}/unblock`, {
+    return apiRequest(`/api/users/admin/${id}/unblock`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -195,7 +196,7 @@ export const userAPI = {
 
   // Cart API
   getCart: async (token) => {
-    return apiRequest('/users/cart', {
+    return apiRequest('/api/users/cart', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -204,8 +205,8 @@ export const userAPI = {
 
   addToCart: async (productId, quantity, token) => {
     // Clear cart cache when adding to cart
-    clearCache('/users/cart', 'GET')
-    return apiRequest('/users/cart', {
+    clearCache('/api/users/cart', 'GET')
+    return apiRequest('/api/users/cart', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -217,8 +218,8 @@ export const userAPI = {
 
   updateCart: async (productId, quantity, token) => {
     // Clear cart cache when updating cart
-    clearCache('/users/cart', 'GET')
-    return apiRequest('/users/cart', {
+    clearCache('/api/users/cart', 'GET')
+    return apiRequest('/api/users/cart', {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -230,8 +231,8 @@ export const userAPI = {
 
   removeFromCart: async (productId, token) => {
     // Clear cart cache when removing from cart
-    clearCache('/users/cart', 'GET')
-    return apiRequest(`/users/cart/${productId}`, {
+    clearCache('/api/users/cart', 'GET')
+    return apiRequest(`/api/users/cart/${productId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -241,8 +242,8 @@ export const userAPI = {
 
   clearCart: async (token) => {
     // Clear cart cache when clearing cart
-    clearCache('/users/cart', 'GET')
-    return apiRequest('/users/cart', {
+    clearCache('/api/users/cart', 'GET')
+    return apiRequest('/api/users/cart', {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -252,7 +253,7 @@ export const userAPI = {
 
   // Wishlist API
   getWishlist: async (token) => {
-    return apiRequest('/users/wishlist', {
+    return apiRequest('/api/users/wishlist', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -261,8 +262,8 @@ export const userAPI = {
 
   addToWishlist: async (productId, token) => {
     // Clear wishlist cache when adding to wishlist
-    clearCache('/users/wishlist', 'GET')
-    return apiRequest('/users/wishlist', {
+    clearCache('/api/users/wishlist', 'GET')
+    return apiRequest('/api/users/wishlist', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -274,8 +275,8 @@ export const userAPI = {
 
   removeFromWishlist: async (productId, token) => {
     // Clear wishlist cache when removing from wishlist
-    clearCache('/users/wishlist', 'GET')
-    return apiRequest(`/users/wishlist/${productId}`, {
+    clearCache('/api/users/wishlist', 'GET')
+    return apiRequest(`/api/users/wishlist/${productId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -285,8 +286,8 @@ export const userAPI = {
 
   clearWishlist: async (token) => {
     // Clear wishlist cache when clearing wishlist
-    clearCache('/users/wishlist', 'GET')
-    return apiRequest('/users/wishlist', {
+    clearCache('/api/users/wishlist', 'GET')
+    return apiRequest('/api/users/wishlist', {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -296,7 +297,7 @@ export const userAPI = {
 
   // Profile API
   updateProfile: async (userData, token) => {
-    return apiRequest('/users/profile', {
+    return apiRequest('/api/users/profile', {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -310,7 +311,7 @@ export const userAPI = {
 // Activity API
 export const activityAPI = {
   getActivities: async (token) => {
-    return apiRequest('/activities', {
+    return apiRequest('/api/activities', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -329,7 +330,7 @@ export const contactAPI = {
       headers['Authorization'] = `Bearer ${token}`;
     }
     
-    return apiRequest('/contact', {
+    return apiRequest('/api/contact', {
       method: 'POST',
       headers,
       body: JSON.stringify(messageData)
@@ -337,7 +338,7 @@ export const contactAPI = {
   },
 
   getUserMessages: async (token) => {
-    const response = await apiRequest('/contact/user', {
+    const response = apiRequest('/api/contact/user', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -349,7 +350,7 @@ export const contactAPI = {
 // Seller Contact API
 export const sellerContactAPI = {
   getContactMessages: async (token) => {
-    return apiRequest('/seller/contact', {
+    return apiRequest('/api/seller/contact', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -357,7 +358,7 @@ export const sellerContactAPI = {
   },
 
   sendContactResponse: async (contactId, responseMessage, token) => {
-    return apiRequest(`/seller/contact/${contactId}/response`, {
+    return apiRequest(`/api/seller/contact/${contactId}/response`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -368,7 +369,7 @@ export const sellerContactAPI = {
   },
 
   getContactResponses: async (token) => {
-    return apiRequest('/seller/contact/responses', {
+    return apiRequest('/api/seller/contact/responses', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -377,7 +378,7 @@ export const sellerContactAPI = {
   
   // Added delete contact message functionality
   deleteContactMessage: async (contactId, token) => {
-    return apiRequest(`/seller/contact/${contactId}`, {
+    return apiRequest(`/api/seller/contact/${contactId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`

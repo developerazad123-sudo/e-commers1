@@ -3,9 +3,20 @@ const crypto = require('crypto');
 
 // Initialize Razorpay instance with environment variables
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_1DP5mmOlF5G5ag',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'rzp_test_1DP5mmOlF5G5ag' // In production, use your secret key
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
 });
+
+// Log to confirm initialization
+console.log('Razorpay initialized with key:', process.env.RAZORPAY_KEY_ID ? 'PROVIDED' : 'MISSING - CHECK ENVIRONMENT VARIABLES');
+
+// Validate that required environment variables are set
+if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+  console.error('ERROR: Razorpay key_id or key_secret is not set in environment variables');
+}
+
+// Log to confirm initialization
+console.log('Razorpay initialized with key:', process.env.RAZORPAY_KEY_ID ? 'PROVIDED' : 'DEFAULT TEST');
 
 // @desc    Verify Razorpay payment
 // @route   POST /api/payment/verify
@@ -14,14 +25,21 @@ exports.verifyPayment = async (req, res, next) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
     
+    console.log('Verifying payment:', { razorpay_order_id, razorpay_payment_id });
+    
     // Create the expected signature
     const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'rzp_test_1DP5mmOlF5G5ag')
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
       .update(razorpay_order_id + '|' + razorpay_payment_id)
       .digest('hex');
     
+    console.log('Expected signature:', expectedSignature);
+    console.log('Received signature:', razorpay_signature);
+    
     // Verify the signature
     const isVerified = expectedSignature === razorpay_signature;
+    
+    console.log('Signature verification result:', isVerified);
     
     if (isVerified) {
       res.status(200).json({
@@ -52,22 +70,30 @@ exports.createOrder = async (req, res, next) => {
     const { amount, currency = 'INR' } = req.body;
     
     // Validate amount
-    if (!amount || amount <= 0) {
+    const validatedAmount = Math.round(parseFloat(amount) * 100); // Convert to paise
+    if (!validatedAmount || validatedAmount <= 0) {
       return res.status(400).json({
         success: false,
         error: 'Invalid amount'
       });
     }
     
+    // Log the amount being processed
+    console.log('Creating order for amount:', amount, 'in currency:', currency);
+    
     // Create order options
     const options = {
-      amount: Math.round(amount * 100), // Convert to paise and round to avoid floating point issues
+      amount: validatedAmount, // Use validated amount
       currency,
       receipt: 'receipt_' + Date.now()
     };
     
+    console.log('Order options:', options);
+    
     // Create order using Razorpay SDK
     const order = await razorpay.orders.create(options);
+    
+    console.log('Order created successfully:', order);
     
     res.status(200).json({
       success: true,

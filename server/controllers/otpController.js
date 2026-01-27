@@ -1,11 +1,28 @@
 const twilio = require('twilio');
 const User = require('../models/User');
 
-// Initialize Twilio client with environment variables
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
+// Initialize Twilio client with environment variables only if they exist
+let client = null;
+let twilioConfigured = false;
+
+if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+  // Check if account SID starts with "AC" as required by Twilio
+  if (process.env.TWILIO_ACCOUNT_SID.startsWith('AC')) {
+    try {
+      client = twilio(
+        process.env.TWILIO_ACCOUNT_SID,
+        process.env.TWILIO_AUTH_TOKEN
+      );
+      twilioConfigured = true;
+    } catch (error) {
+      console.error('Failed to initialize Twilio client:', error.message);
+    }
+  } else {
+    console.warn('TWILIO_ACCOUNT_SID must start with "AC". Twilio SMS functionality will be disabled.');
+  }
+} else {
+  console.warn('Twilio credentials not found in environment variables. Twilio SMS functionality will be disabled.');
+}
 
 // Store OTPs in memory (in production, use Redis or database)
 const otpStore = new Map();
@@ -34,19 +51,24 @@ exports.sendOTP = async (req, res, next) => {
       expiresAt: Date.now() + 5 * 60 * 1000 // 5 minutes
     });
 
-    // Send actual SMS via Twilio in both development and production
-    try {
-      await client.messages.create({
-        body: `Your Akario Mart verification code is: ${otp}`,
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to: phone.startsWith('+') ? phone : `+91${phone}` // Ensure proper formatting for Indian numbers
-      });
-      
-      console.log(`OTP sent successfully to ${phone}: ${otp}`);
-    } catch (smsError) {
-      console.error('SMS sending error:', smsError);
-      // Even if SMS fails, we still return success for demo purposes
-      // In production, you might want to handle this differently
+    // Send actual SMS via Twilio only if configured
+    if (twilioConfigured) {
+      try {
+        await client.messages.create({
+          body: `Your Akario Mart verification code is: ${otp}`,
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to: phone.startsWith('+') ? phone : `+91${phone}` // Ensure proper formatting for Indian numbers
+        });
+        
+        console.log(`OTP sent successfully to ${phone}: ${otp}`);
+      } catch (smsError) {
+        console.error('SMS sending error:', smsError);
+        // Even if SMS fails, we still return success for demo purposes
+        // In production, you might want to handle this differently
+      }
+    } else {
+      // For demo/testing purposes when Twilio is not configured
+      console.log(`OTP (not sent via SMS - Twilio not configured) for ${phone}: ${otp}`);
     }
 
     res.status(200).json({

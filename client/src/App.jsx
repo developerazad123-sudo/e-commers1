@@ -8,6 +8,8 @@ import About from './pages/About'
 import Contact from './pages/Contact'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
+import ForgotPassword from './pages/auth/ForgotPassword'
+import ResetPassword from './pages/auth/ResetPassword'
 import UserDashboard from './pages/user/Dashboard'
 import AdminDashboard from './pages/admin/Dashboard'
 import SellerDashboard from './pages/seller/Dashboard'
@@ -48,6 +50,8 @@ function App() {
                     <Route path="/test" element={<Test />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password/:resettoken" element={<ResetPassword />} />
                     <Route path="/products" element={<Products />} />
                     <Route path="/product/:id" element={<ProductDetail />} />
                     <Route 

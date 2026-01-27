@@ -225,40 +225,9 @@ exports.productPhotoUpload = async (req, res, next) => {
 
     const file = req.file;
 
-    // Make sure the image is a photo
-    if (!file.mimetype.startsWith('image')) {
-      return res.status(400).json({
-        success: false,
-        error: 'Please upload an image file'
-      });
-    }
-
-    // Check filesize
-    if (file.size > process.env.MAX_FILE_UPLOAD) {
-      return res.status(400).json({
-        success: false,
-        error: `Please upload an image less than ${process.env.MAX_FILE_UPLOAD}`
-      });
-    }
-
-    // Create custom filename
-    const fileExtension = path.extname(file.originalname);
-    const fileName = `photo_${product._id}${fileExtension}`;
-
-    // Move file from temp location to uploads directory
-    const uploadPath = path.join(__dirname, '../public/uploads/', fileName);
-    
-    // Ensure the uploads directory exists
-    const uploadDir = path.dirname(uploadPath);
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    // Move the file
-    fs.renameSync(file.path, uploadPath);
-
-    // Save the image path with /uploads/ prefix
-    const imagePath = `/uploads/${fileName}`;
+    // The file has already been moved to the correct location by multer with our storage configuration
+    // Now we just need to update the product with the new image path
+    const imagePath = `/uploads/${file.filename}`;
     await Product.findByIdAndUpdate(req.params.id, { image: imagePath });
     
     // Log activity

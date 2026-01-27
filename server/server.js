@@ -32,16 +32,15 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.use(
-  '/uploads',
-  cors(corsOptions),
-  (req, res, next) => {
-    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.set('Cache-Control', 'no-store');
-    next();
-  },
-  express.static(path.join(__dirname, 'public', 'uploads'))
-);
+// Serve static files from uploads folder
+app.use('/uploads', cors(corsOptions), (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  next();
+}, express.static(path.join(__dirname, 'public', 'uploads')));
 
 // Mount routers
 app.use('/api/auth', require('./routes/auth'));
@@ -52,6 +51,34 @@ app.use('/api/payment', require('./routes/payment'));
 app.use('/api/seller/contact', require('./routes/sellerContact'));
 app.use('/api/activities', require('./routes/activities'));
 app.use('/api/otp', require('./routes/otp')); // Add OTP routes
+
+// Serve static files from uploads folder
+app.use('/uploads', cors(corsOptions), (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  next();
+}, express.static(path.join(__dirname, 'public', 'uploads')));
+
+// Serve frontend files in production
+if (process.env.NODE_ENV === 'production') {
+  const frontendPath = path.join(__dirname, '..', 'client', 'dist');
+  
+  // Check if build directory exists
+  if (fs.existsSync(frontendPath)) {
+    console.log('-serving frontend from:', frontendPath);
+    app.use(express.static(frontendPath));
+    
+    // Serve index.html for all non-API routes
+    app.get(/^(?!\/api\/).*$/, (req, res) => {
+      res.sendFile(path.join(frontendPath, 'index.html'));
+    });
+  } else {
+    console.log('⚠️ Frontend build not found. Make sure to run "npm run build" in the client directory first.');
+  }
+}
 
 // Error handler
 app.use(errorHandler);

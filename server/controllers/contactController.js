@@ -16,18 +16,12 @@ exports.createContactMessage = async (req, res, next) => {
       name,
       email,
       subject,
-      message
+      message,
+      // Associate with user if logged in
+      user: req.user ? req.user.id : undefined
     });
 
     console.log('Contact created:', contact);
-
-    // If user is logged in, associate with user
-    if (req.user) {
-      console.log('Associating contact with user:', req.user.id);
-      contact.user = req.user.id;
-      await contact.save();
-      console.log('Contact after user association:', contact);
-    }
 
     res.status(201).json({
       success: true,

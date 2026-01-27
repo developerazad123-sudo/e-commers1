@@ -7,10 +7,18 @@
     "dev": "node start-dev.js",
     "dev:backend": "cd server && npm run dev",
     "dev:frontend": "cd client && npm run dev",
-    "install:all": "npm install && cd server && npm install && cd ../client && npm install"
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "build": "npm run build --prefix client",
+    "build:frontend": "npm run build --prefix client",
+    "build:backend": "echo \"Backend does not require build step\"",
+    "build:all": "npm run build:frontend",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd server && npm start",
+    "start:frontend": "cd client && npm run preview",
+    "deploy": "node deploy.js"
   },
   "dependencies": {
-    "axios": "^1.12.2",
+    "axios": "^1.13.2",
     "dotenv": "^17.2.3",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.546.0",
@@ -19,6 +27,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",
+    "concurrently": "^9.2.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.14",
     "vite": "^7.1.10"

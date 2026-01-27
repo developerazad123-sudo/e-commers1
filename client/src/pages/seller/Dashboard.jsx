@@ -19,12 +19,12 @@ const SellerDashboard = () => {
     description: '',
     price: '',
     discount: '',
-    category: 'technology',
-    imageUrl: ''
+    category: 'technology'
   })
   const [editingProduct, setEditingProduct] = useState(null)
-  const [image, setImage] = useState(null)
-  const [imageUrl, setImageUrl] = useState('')
+  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageUrl, setImageUrl] = useState('');
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -42,7 +42,7 @@ const SellerDashboard = () => {
   // Check for user data on component mount
   useEffect(() => {
     // Check if user is already in context
-    if (user) {
+    if (user && user.id) {
       setLoadingUserData(false)
     } else {
       // Check localStorage as backup
@@ -50,7 +50,11 @@ const SellerDashboard = () => {
       if (savedUser) {
         try {
           const parsedUser = JSON.parse(savedUser)
-          setLoadingUserData(false)
+          if (parsedUser && parsedUser.id) {
+            setLoadingUserData(false)
+          } else {
+            setLoadingUserData(false)
+          }
         } catch (e) {
           console.error('Error parsing saved user data:', e)
           setLoadingUserData(false)
@@ -70,7 +74,7 @@ const SellerDashboard = () => {
       if (savedUser) {
         try {
           const parsedUser = JSON.parse(savedUser)
-          if (parsedUser.role !== 'seller') {
+          if (parsedUser && parsedUser.role !== 'seller') {
             navigate('/login')
           }
         } catch (e) {
@@ -126,17 +130,28 @@ const SellerDashboard = () => {
       if (response.success) {
         // Filter products to show only those belonging to the current seller
         const sellerProducts = response.data.filter(product => {
-          // Handle both string and object formats for seller
-          const sellerId = typeof product.seller === 'object' ? product.seller._id : product.seller
-          return sellerId === user.id
+          // Handle cases where product.seller might be null, undefined, or invalid
+          if (!product.seller) return false;
+          
+          try {
+            // Handle both string and object formats for seller
+            const sellerId = typeof product.seller === 'object' ? 
+              (product.seller._id || product.seller.id) : 
+              product.seller;
+              
+            return sellerId && sellerId.toString() === user.id.toString();
+          } catch (err) {
+            console.error('Error processing product seller data:', err);
+            return false;
+          }
         })
         setProducts(sellerProducts)
       } else {
-        setProductsError('Failed to fetch products')
+        setProductsError(response.message || 'Failed to fetch products')
       }
     } catch (err) {
-      setProductsError('An error occurred while fetching products')
-      console.error(err)
+      setProductsError('An error occurred while fetching products: ' + err.message)
+      console.error('Error fetching products:', err)
     } finally {
       setProductsLoading(false)
     }
@@ -215,15 +230,16 @@ const SellerDashboard = () => {
   }
 
   const handleImageChange = (e) => {
-    if (e.target.name === 'imageUrl') {
-      // Handle image URL input
-      setProductData({
-        ...productData,
-        imageUrl: e.target.value
-      });
-    } else if (e.target.files && e.target.files[0]) {
-      // Handle file input (existing functionality)
-      setImage(e.target.files[0]);
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImage(file);
+      
+      // Create a preview URL for the selected image
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -247,26 +263,21 @@ const SellerDashboard = () => {
       
       if (response.success) {
         // If product created successfully, handle image if provided
-        if (productData.imageUrl) {
-          // Update product with image URL
-          const updateResponse = await productAPI.updateProduct(
-            response.data._id, 
-            { image: productData.imageUrl }, 
-            token
-          );
-          
-          if (!updateResponse.success) {
-            console.error('Failed to update image URL:', updateResponse.message);
-          }
-        } else if (image) {
-          // Upload the image file
-          const formData = new FormData();
-          formData.append('file', image);
-          
-          const uploadResponse = await productAPI.uploadProductPhoto(response.data._id, formData, token);
-          
-          if (!uploadResponse.success) {
-            console.error('Failed to upload image:', uploadResponse.message);
+        if (image) {
+          // Validate image type
+          if (!image.type.startsWith('image/')) {
+            setError('Please select a valid image file (JPEG, PNG, etc.)');
+          } else {
+            // Upload the image file
+            const formData = new FormData();
+            formData.append('file', image);
+            
+            const uploadResponse = await productAPI.uploadProductPhoto(response.data._id, formData, token);
+            
+            if (!uploadResponse.success) {
+              console.error('Failed to upload image:', uploadResponse.message);
+              setError(uploadResponse.message || 'Failed to upload product image');
+            }
           }
         }
         
@@ -277,10 +288,10 @@ const SellerDashboard = () => {
           description: '',
           price: '',
           discount: '',
-          category: 'technology',
-          imageUrl: ''
+          category: 'technology'
         });
         setImage(null);
+        setImagePreview(null);
         // Refresh products list
         fetchSellerProducts();
         // Close modal after a short delay
@@ -306,8 +317,7 @@ const SellerDashboard = () => {
       description: product.description,
       price: product.price.toString(),
       discount: product.discount?.toString() || '0',
-      category: product.category,
-      imageUrl: product.image && !product.image.includes('no-photo') ? product.image : ''
+      category: product.category
     })
     setImage(null)
     setShowEditProduct(true)
@@ -333,26 +343,21 @@ const SellerDashboard = () => {
       
       if (response.success) {
         // If product updated successfully, handle image if provided
-        if (productData.imageUrl) {
-          // Update product with image URL
-          const updateResponse = await productAPI.updateProduct(
-            editingProduct._id, 
-            { image: productData.imageUrl }, 
-            token
-          );
-          
-          if (!updateResponse.success) {
-            console.error('Failed to update image URL:', updateResponse.message);
-          }
-        } else if (image) {
-          // Upload the image file
-          const formData = new FormData();
-          formData.append('file', image);
-          
-          const uploadResponse = await productAPI.uploadProductPhoto(editingProduct._id, formData, token);
-          
-          if (!uploadResponse.success) {
-            console.error('Failed to upload image:', uploadResponse.message);
+        if (image) {
+          // Validate image type
+          if (!image.type.startsWith('image/')) {
+            setError('Please select a valid image file (JPEG, PNG, etc.)');
+          } else {
+            // Upload the image file
+            const formData = new FormData();
+            formData.append('file', image);
+            
+            const uploadResponse = await productAPI.uploadProductPhoto(editingProduct._id, formData, token);
+            
+            if (!uploadResponse.success) {
+              console.error('Failed to upload image:', uploadResponse.message);
+              setError(uploadResponse.message || 'Failed to upload product image');
+            }
           }
         }
         
@@ -397,8 +402,13 @@ const SellerDashboard = () => {
 
   // Function to get product image URL
   const getProductImageUrl = (product) => {
+    // Handle cases where product might be null or undefined
+    if (!product) {
+      return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&h=300';
+    }
+    
     console.log('Getting product image URL for:', product.image);
-    if (!product || !product.image) {
+    if (!product.image) {
       return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&h=300';
     }
     
@@ -422,7 +432,7 @@ const SellerDashboard = () => {
   };
 
   // If user is not loaded yet, show loading state
-  if (!user) {
+  if (loadingUserData || (user === null && localStorage.getItem('user'))) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-xl text-gray-600">Loading...</div>
@@ -431,7 +441,12 @@ const SellerDashboard = () => {
   }
 
   // If user is not authenticated or not a seller, redirect to login
-  if (!user || user.role !== 'seller') {
+  if ((!user || !user.id) && !localStorage.getItem('user')) {
+    navigate('/login')
+    return null
+  }
+
+  if (user && user.role !== 'seller') {
     navigate('/login')
     return null
   }
@@ -483,6 +498,7 @@ const SellerDashboard = () => {
                         src={getProductImageUrl(product)} 
                         alt={product.name} 
                         className="w-full h-full object-cover"
+                        crossOrigin="anonymous"
                       />
                     </div>
                     <h3 className="font-semibold text-gray-800">{product.name}</h3>
@@ -705,6 +721,7 @@ const SellerDashboard = () => {
                           src={getProductImageUrl(product)} 
                           alt={product.name} 
                           className="w-full h-full object-cover"
+                          crossOrigin="anonymous"
                         />
                       </div>
                       <h3 className="font-semibold text-gray-800">{product.name}</h3>
@@ -924,6 +941,9 @@ const SellerDashboard = () => {
                         <option value="technology">Technology</option>
                         <option value="clothing">Clothing</option>
                         <option value="home appliances">Home Appliances</option>
+                        <option value="books">Books</option>
+                        <option value="sports">Sports</option>
+                        <option value="home & kitchen">Home & Kitchen</option>
                       </select>
                     </div>
                     <div className="space-y-4">
@@ -969,6 +989,29 @@ const SellerDashboard = () => {
                         </div>
                         <p className="mt-2 text-xs text-gray-500">Enter an image URL or upload an image file. If both are provided, the URL will be used.</p>
                       </div>
+                    </div>
+
+                  <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Product Image
+                      </label>
+                      <div className="flex items-center justify-center w-full">
+                        <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-lg cursor-pointer border-gray-300 hover:border-blue-400 transition-colors duration-200 bg-gray-50 hover:bg-gray-100">
+                          <div className="flex flex-col items-center justify-center pt-1 pb-1">
+                            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <p className="text-xs text-gray-500 mt-1">Click to upload image</p>
+                          </div>
+                          <input 
+                            type="file" 
+                            className="hidden"
+                            onChange={handleImageChange}
+                            accept="image/*"
+                          />
+                        </label>
+                      </div>
+                      <p className="mt-2 text-xs text-gray-500">Upload an image file for your product.</p>
                     </div>
 
                   </div>
@@ -1109,50 +1152,48 @@ const SellerDashboard = () => {
                         <option value="technology">Technology</option>
                         <option value="clothing">Clothing</option>
                         <option value="home appliances">Home Appliances</option>
+                        <option value="books">Books</option>
+                        <option value="sports">Sports</option>
+                        <option value="home & kitchen">Home & Kitchen</option>
                       </select>
                     </div>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Product Image
-                        </label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">
-                              Image URL
-                            </label>
-                            <input
-                              type="text"
-                              name="imageUrl"
-                              value={productData.imageUrl || ''}
-                              onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                              placeholder="https://example.com/image.jpg"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">
-                              Upload Image
-                            </label>
-                            <div className="flex items-center justify-center w-full">
-                              <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-lg cursor-pointer border-gray-300 hover:border-blue-400 transition-colors duration-200 bg-gray-50 hover:bg-gray-100">
-                                <div className="flex flex-col items-center justify-center pt-1 pb-1">
-                                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                  </svg>
-                                  <p className="text-xs text-gray-500 mt-1">Click to upload</p>
-                                </div>
-                                <input 
-                                  type="file" 
-                                  className="hidden"
-                                  onChange={handleImageChange}
-                                  accept="image/*"
-                                />
-                              </label>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Product Image
+                      </label>
+                      <div className="flex flex-col items-center">
+                        {/* Image Preview */}
+                        {imagePreview && (
+                          <div className="mb-4 w-full max-w-xs">
+                            <div className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-40 overflow-hidden flex items-center justify-center">
+                              <img 
+                                src={imagePreview} 
+                                alt="Preview" 
+                                className="w-full h-full object-contain"
+                              />
                             </div>
                           </div>
+                        )}
+                        
+                        <div className="flex items-center justify-center w-full">
+                          <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-lg cursor-pointer border-gray-300 hover:border-blue-400 transition-colors duration-200 bg-gray-50 hover:bg-gray-100">
+                            <div className="flex flex-col items-center justify-center pt-1 pb-1">
+                              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {image ? 'Change image' : 'Click to upload image'}
+                              </p>
+                            </div>
+                            <input 
+                              type="file" 
+                              className="hidden"
+                              onChange={handleImageChange}
+                              accept="image/*"
+                            />
+                          </label>
                         </div>
-                        <p className="mt-2 text-xs text-gray-500">Enter an image URL or upload an image file. If both are provided, the URL will be used.</p>
+                        <p className="mt-2 text-xs text-gray-500">Upload an image file for your product.</p>
                       </div>
                     </div>
 

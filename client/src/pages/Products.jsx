@@ -215,7 +215,7 @@ const Products = () => {
               <option value="all">All Categories</option>
               <option value="technology">Technology</option>
               <option value="clothing">Clothing</option>
-              <option value="home">Home & Kitchen</option>
+              <option value="home & kitchen">Home & Kitchen</option>
               <option value="books">Books</option>
               <option value="sports">Sports</option>
             </select>
